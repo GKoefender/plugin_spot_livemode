@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track Advertisement</title>
+  <style>
+    html {
+      width: 300px;      
+    }
+    #seconds {
+      width: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <div id="config">
+      <h3>Configuração de avanço/retorno vídeo</h3>
+      <label>(seta direita/esquerda)</label>
+      <input type="number" id="time-fast" value="5"> 
+
+      <br />
+      
+      <label>ctrl + (seta direita/esquerda)</label>
+      <input type="number" id="time-slow" value="1"> 
+    </div>
+    <div id="Detalhes da partida">
+      <h2>Detalhes da partida</h2>
+      <input type="text" id="campeonato" placeholder="Campeonato">
+      <input type="text" id="rodada" placeholder="Rodada">
+      <input type="text" id="partida" placeholder="Partida">
+    </div> 
+    <div id="criarAds">
+      <h2>Criar Ads</h2>
+      <input type="text" id="cliente" placeholder="Cliente">
+      <input type="text" id="propriedade" placeholder="Propriedade">
+      <button id="novoAd">Novo AD</button>
+    </div>
+    <div id="adsContainer">
+      <h2>Ads criados</h2>
+      <ul id="ads">
+        
+      </ul>
+    </div>
+    <div id="controles">
+      <h2>Controles de vídeo</h2>
+      <button id="pauseVideo">Pause</button> 
+      <button id="playVideo">Play</button>
+      <button id="backVideo">&lt;</button>
+      <input type="number" id="seconds" value="5"> 
+      <button id="fwdVideo">&gt;</button>
+    </div>
+    <button id="exportar">Exportar csv</button>
+    <script src="popup.js"></script>
+  </div>
+</body>
+</html>
