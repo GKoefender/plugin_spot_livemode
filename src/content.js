@@ -67,6 +67,50 @@ function updateAutocompleteLists() {
   });
 }
 
+// Função para tornar um elemento redimensionável
+function makeResizable(element, handle, options = {}) {
+  const {
+    resizeType = 'both', // 'both', 'horizontal', 'vertical'
+    minWidth = 250,
+    maxWidth = window.innerWidth * 0.8,
+    minHeight = 300,
+    maxHeight = window.innerHeight * 0.95,
+    onResize = () => {}
+  } = options;
+
+  handle.addEventListener('mousedown', startResize);
+
+  function startResize(e) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = parseInt(getComputedStyle(element).width, 10);
+    const startHeight = parseInt(getComputedStyle(element).height, 10);
+
+    function doResize(e) {
+      if (resizeType === 'both' || resizeType === 'horizontal') {
+        let newWidth = startWidth + (e.clientX - startX);
+        newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
+        element.style.width = `${newWidth}px`;
+      }
+      if (resizeType === 'both' || resizeType === 'vertical') {
+        let newHeight = startHeight + (e.clientY - startY);
+        newHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
+        element.style.height = `${newHeight}px`;
+      }
+      onResize();
+    }
+
+    function stopResize() {
+      window.removeEventListener('mousemove', doResize);
+      window.removeEventListener('mouseup', stopResize);
+    }
+
+    window.addEventListener('mousemove', doResize);
+    window.addEventListener('mouseup', stopResize);
+  }
+}
+
 // Função para criar e injetar a interface no DOM
 function injectPluginUI() {
   // Verificar se a interface já existe para evitar duplicação
@@ -82,13 +126,23 @@ function injectPluginUI() {
   container.style.background = '#fff';
   container.style.border = '1px solid #ccc';
   container.style.padding = '10px';
-  container.style.width = '350px';
   container.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
   container.style.fontFamily = 'Arial, sans-serif';
+  // Tamanhos iniciais definidos via JS
+  container.style.width = '350px';
+  container.style.height = 'auto';
+  container.style.maxHeight = '90vh';
+  container.style.overflowY = 'auto';
 
-  // HTML da interface com área de scroll para ads
+  // HTML da interface com handles de redimensionamento
   container.innerHTML = `
     <style>
+      #plugin-ui-container {
+        display: flex;
+        flex-direction: column;
+        min-width: 250px;
+        min-height: 300px;
+      }
       #plugin-ui-container input, #plugin-ui-container button {
         margin: 5px 0;
       }
@@ -105,12 +159,14 @@ function injectPluginUI() {
       #plugin-ui-container ul {
         list-style: none;
         padding: 0;
-        max-height: 150px; /* Limitar altura da lista de ads */
-        overflow-y: auto; /* Adicionar scroll vertical */
+        height: 150px; /* Altura inicial */
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        margin-bottom: 0;
       }
       #plugin-ui-container li {
         margin: 5px 0;
-        font-size: 16px; /* Tamanho da fonte dos ads criados */
+        font-size: 14px;
       }
       #plugin-ui-container button {
         padding: 5px;
@@ -142,12 +198,102 @@ function injectPluginUI() {
         color: #333;
         margin-left: 5px;
       }
+      #clear-all-btn {
+        background: #b71c1c;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        padding: 5px 10px;
+        margin-left: 5px;
+        cursor: pointer;
+      }
       #split-duration-container {
         display: none;
+      }
+      .resize-handle {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 15px;
+        height: 15px;
+        background: #ccc;
+        cursor: se-resize;
+        clip-path: polygon(100% 0, 100% 100%, 0 100%);
+      }
+      .resize-handle-ads {
+        width: 100%;
+        height: 5px;
+        background: #ccc;
+        cursor: ns-resize;
+        margin-top: 2px;
+      }
+      /* Media queries */
+      @media screen and (max-width: 768px) {
+        #plugin-ui-container {
+          width: 90%;
+          max-height: 85vh;
+          top: 5px;
+          right: 5px;
+          padding: 8px;
+        }
+        #plugin-ui-container h2, #plugin-ui-container h3 {
+          font-size: 14px;
+        }
+        #plugin-ui-container input, #plugin-ui-container button {
+          font-size: 12px;
+          margin: 3px 0;
+        }
+        #plugin-ui-container input[type="number"] {
+          width: 60px;
+        }
+        #plugin-ui-container input[type="date"] {
+          width: 120px;
+        }
+        #plugin-ui-container li {
+          font-size: 12px;
+        }
+        #toggle-ui-btn, #delete-ad-btn, #edit-ad-btn, #cancel-edit-btn, #clear-all-btn {
+          padding: 4px 6px;
+        }
+        #plugin-ui-container ul {
+          height: 120px;
+        }
+      }
+      @media screen and (max-width: 480px) {
+        #plugin-ui-container {
+          width: 95%;
+          max-height: 80vh;
+          padding: 5px;
+        }
+        #plugin-ui-container h2, #plugin-ui-container h3 {
+          font-size: 12px;
+        }
+        #plugin-ui-container input, #plugin-ui-container button {
+          font-size: 10px;
+        }
+        #plugin-ui-container input[type="number"] {
+          width: 50px;
+        }
+        #plugin-ui-container input[type="date"] {
+          width: 100px;
+        }
+        #plugin-ui-container li {
+          font-size: 10px;
+        }
+        #toggle-ui-btn, #delete-ad-btn, #edit-ad-btn, #cancel-edit-btn, #clear-all-btn {
+          padding: 3px 5px;
+        }
+        #plugin-ui-container ul {
+          height: 100px;
+        }
+        .resize-handle, .resize-handle-ads {
+          display: none; /* Desativa resize em telas muito pequenas */
+        }
       }
     </style>
     <button id="toggle-ui-btn">Minimizar</button>
     <button id="exportar">Exportar Excel</button>
+    <button id="clear-all-btn">Limpar Tudo</button>
     <div id="plugin-ui-content">
       <div id="config">
         <h3>Configuração de avanço/retorno vídeo</h3>
@@ -189,18 +335,43 @@ function injectPluginUI() {
       <div id="adsContainer">
         <h2>Ads criados</h2>
         <ul id="ads"></ul>
+        <div class="resize-handle-ads"></div>
       </div>
     </div>
+    <div class="resize-handle"></div>
   `;
 
   // Adicionar ao DOM
   document.body.appendChild(container);
+
+  // Inicializar redimensionamento
+  const resizeHandle = container.querySelector('.resize-handle');
+  makeResizable(container, resizeHandle, {
+    resizeType: 'both',
+    minWidth: 250,
+    maxWidth: window.innerWidth * 0.8,
+    minHeight: 300,
+    maxHeight: window.innerHeight * 0.95
+  });
+
+  const adsList = container.querySelector('#ads');
+  const resizeHandleAds = container.querySelector('.resize-handle-ads');
+  makeResizable(adsList, resizeHandleAds, {
+    resizeType: 'vertical',
+    minHeight: 100,
+    maxHeight: container.offsetHeight * 0.8,
+    onResize: () => {
+      // Atualizar maxHeight dinamicamente
+      adsList.style.maxHeight = adsList.style.height;
+    }
+  });
 
   // Adicionar listeners aos botões
   document.getElementById('toggle-ui-btn').addEventListener('click', toggleUI);
   document.getElementById('novoAd').addEventListener('click', handleNewAd);
   document.getElementById('cancel-edit-btn').addEventListener('click', cancelEdit);
   document.getElementById('exportar').addEventListener('click', handleExportExcel);
+  document.getElementById('clear-all-btn').addEventListener('click', handleClearAll);
 
   // Mostrar/esconder campo de duração do segmento
   document.getElementById('split-ad').addEventListener('change', function() {
@@ -210,7 +381,32 @@ function injectPluginUI() {
   // Carregar dados existentes
   loadExistingAds();
   loadVideoMetadata();
-  updateAutocompleteLists(); // Inicializar listas de autocomplete
+  updateAutocompleteLists();
+
+  // Alternativa: Limpar automaticamente ao carregar um novo vídeo
+  /*
+  let lastVideoId = new URLSearchParams(window.location.search).get('v');
+  const videoObserver = new MutationObserver(() => {
+    const currentVideoId = new URLSearchParams(window.location.search).get('v');
+    if (currentVideoId && currentVideoId !== lastVideoId) {
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      loadExistingAds();
+      updateAutocompleteLists();
+      lastVideoId = currentVideoId;
+    }
+  });
+  videoObserver.observe(document.body, { childList: true, subtree: true });
+  */
+}
+
+// Função para limpar todas as inserções
+function handleClearAll() {
+  if (confirm('Tem certeza que deseja excluir todas as inserções? Esta ação não pode ser desfeita.')) {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    loadExistingAds();
+    updateAutocompleteLists();
+    alert('Todas as inserções foram excluídas.');
+  }
 }
 
 // Função para minimizar/maximizar a interface
@@ -327,7 +523,7 @@ function handleNewAd() {
       for (let i = 0; i < numParts; i++) {
         const partStartSeconds = startSeconds + i * splitDuration;
         const partDuration = Math.min(remainingTime, splitDuration);
-        const isFailure = partDuration < splitDuration ? true : failureAd; // Falha automática para segmentos curtos, senão usa checkbox
+        const isFailure = partDuration < splitDuration ? true : failureAd;
         const newAdObj = {
           id: generateUUID(),
           customer,
@@ -357,12 +553,12 @@ function handleNewAd() {
         rodada,
         partida,
         dataPartida,
-        isFailure: failureAd // Usa estado do checkbox
+        isFailure: failureAd
       };
       pluginAds.push(newAdObj);
     }
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(pluginAds));
-    cancelEdit(); // Resetar modo de edição
+    cancelEdit();
   } else {
     // Modo de criação: adicionar novo(s) AD(s)
     if (splitAd) {
@@ -374,7 +570,7 @@ function handleNewAd() {
       for (let i = 0; i < numParts; i++) {
         const partStartSeconds = startSeconds + i * splitDuration;
         const partDuration = Math.min(remainingTime, splitDuration);
-        const isFailure = partDuration < splitDuration ? true : failureAd; // Falha automática para segmentos curtos, senão usa checkbox
+        const isFailure = partDuration < splitDuration ? true : failureAd;
         const newAdObj = {
           id: generateUUID(),
           customer,
@@ -404,7 +600,7 @@ function handleNewAd() {
         rodada,
         partida,
         dataPartida,
-        isFailure: failureAd // Usa estado do checkbox
+        isFailure: failureAd
       };
       pluginAds.push(newAdObj);
     }
@@ -446,7 +642,7 @@ function handleEditAd(id) {
     // Estimar splitDuration com base no primeiro ad do grupo
     const groupAds = pluginAds.filter(gad => gad.splitGroupId === ad.splitGroupId);
     document.getElementById('split-duration').value = groupAds[0].endElapsedTime || '';
-    // Verificar se todos os ads do grupo têm o mesmo isFailure (exceto falhas automáticas)
+    // Verificar se todos os ads do grupo têm o mesmo isFailure
     const nonAutoFailedAds = groupAds.filter(gad => gad.endElapsedTime >= (Number(document.getElementById('split-duration').value) || 0));
     const failureStates = [...new Set(nonAutoFailedAds.map(gad => gad.isFailure))];
     if (failureStates.length > 1) {
@@ -519,7 +715,7 @@ function handleEndAd(id, event) {
   const endSecond = toSeconds(currentTime);
   const elapsed = endSecond - startSecond;
   parent.firstChild.textContent = `${parentArray[0]} | ${parentArray[1]} | ${startTime} | ${elapsed} | `;
-  parent.removeChild(target); // Remove apenas o botão "fim", mantendo "editar" e "excluir"
+  parent.removeChild(target);
 
   let pluginAds = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [];
   pluginAds = pluginAds.map(ad => {
@@ -552,7 +748,7 @@ function handleExportExcel() {
       throw new Error('Biblioteca SheetJS não carregada corretamente.');
     }
 
-    // Ordenar dados por startTime (convertido para segundos)
+    // Ordenar dados por startTime
     const sortedData = data.sort((a, b) => {
       const timeA = toSeconds(a.startTime);
       const timeB = toSeconds(b.startTime);
@@ -568,10 +764,10 @@ function handleExportExcel() {
       Partida: row.partida || '',
       Minutagem: row.startTime || '',
       'Tempo de Exposição': row.endElapsedTime !== null ? row.endElapsedTime : '',
-      'Tipo Propriedade': '', // Vazio
+      'Tipo Propriedade': '',
       Propriedade: row.property || '',
       Cliente: row.customer || '',
-      Falha: row.isFailure ? 'Sim' : 'Não'
+      Falha: row.isFailure ? 'Sim' : 'Não Entregue'
     }));
 
     // Criar planilha
@@ -626,7 +822,6 @@ function loadVideoMetadata() {
       document.getElementById('campeonato').value = title[2] || '';
       document.getElementById('rodada').value = title[1] || '';
       document.getElementById('partida').value = title[0].split(':')[1]?.trim() || '';
-      // Data não é preenchida automaticamente
     } catch (e) {
       console.error('Erro ao carregar metadados:', e);
     }
