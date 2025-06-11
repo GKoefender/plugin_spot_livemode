@@ -45,25 +45,25 @@ function updateAutocompleteLists() {
   const uniqueCustomers = [...new Set(pluginAds.map(ad => ad.customer).filter(c => c))];
   const uniqueProperties = [...new Set(pluginAds.map(ad => ad.property).filter(p => p))];
 
-  const clienteList = document.getElementById('cliente-list');
-  const propriedadeList = document.getElementById('propriedade-list');
+  const clientList = document.getElementById('cliente-list');
+  const propertyList = document.getElementById('propriedade-list');
 
   // Limpar listas existentes
-  clienteList.innerHTML = '';
-  propriedadeList.innerHTML = '';
+  clientList.innerHTML = '';
+  propertyList.innerHTML = '';
 
   // Preencher lista de clientes
   uniqueCustomers.forEach(customer => {
     const option = document.createElement('option');
     option.value = customer;
-    clienteList.appendChild(option);
+    clientList.appendChild(option);
   });
 
   // Preencher lista de propriedades
   uniqueProperties.forEach(property => {
     const option = document.createElement('option');
     option.value = property;
-    propriedadeList.appendChild(option);
+    propertyList.appendChild(option);
   });
 }
 
@@ -382,21 +382,6 @@ function injectPluginUI() {
   loadExistingAds();
   loadVideoMetadata();
   updateAutocompleteLists();
-
-  // Alternativa: Limpar automaticamente ao carregar um novo vídeo
-  /*
-  let lastVideoId = new URLSearchParams(window.location.search).get('v');
-  const videoObserver = new MutationObserver(() => {
-    const currentVideoId = new URLSearchParams(window.location.search).get('v');
-    if (currentVideoId && currentVideoId !== lastVideoId) {
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-      loadExistingAds();
-      updateAutocompleteLists();
-      lastVideoId = currentVideoId;
-    }
-  });
-  videoObserver.observe(document.body, { childList: true, subtree: true });
-  */
 }
 
 // Função para limpar todas as inserções
@@ -620,8 +605,10 @@ function handleNewAd() {
   // Atualizar listas de autocomplete
   updateAutocompleteLists();
 
-  // Recarregar lista para refletir alterações
+  // Recarregar lista para refletir alterações e rolar até o final
   loadExistingAds();
+  const adsList = document.getElementById('ads');
+  adsList.scrollTop = adsList.scrollHeight;
 }
 
 // Função para iniciar edição de um AD
@@ -689,7 +676,7 @@ function handleDeleteAd(id, adElement) {
     pluginAds = pluginAds.filter(gad => gad.splitGroupId !== ad.splitGroupId);
   } else {
     // Excluir apenas o ad individual
-    pluginAds = pluginAds.filter(gad => gad.id !== id);
+    pluginAds = pluginAds.filter(gad => ad.id !== id);
   }
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(pluginAds));
 
@@ -756,7 +743,7 @@ function handleExportExcel() {
     });
 
     // Preparar dados para a planilha
-    const headers = ['Data', 'Campeonato', 'Rodada', 'Partida', 'Minutagem', 'Tempo de Exposição', 'Tipo Propriedade', 'Propriedade', 'Cliente', 'Falha'];
+    const headers = ['Data', 'Campeonato', 'Rodada', 'Partida', 'Minutagem', 'Tempo de Exposição', 'Tipo Propriedade', 'Propriedade', 'Cliente', 'Check Entrega OPEC'];
     const rows = sortedData.map(row => ({
       Data: row.dataPartida || '',
       Campeonato: row.campeonato || '',
@@ -767,7 +754,7 @@ function handleExportExcel() {
       'Tipo Propriedade': '',
       Propriedade: row.property || '',
       Cliente: row.customer || '',
-      Falha: row.isFailure ? 'Sim' : 'Não Entregue'
+      'Check Entrega OPEC': row.isFailure ? 'NÃO ENTREGUE' : 'SIM'
     }));
 
     // Criar planilha
@@ -790,10 +777,10 @@ function loadExistingAds() {
   adsList.innerHTML = '';
   existingAds.forEach(ad => {
     const newAd = document.createElement('li');
-    newAd.textContent = `${ad.customer} | ${ad.property} | ${ad.startTime} | `;
     if (ad.endElapsedTime !== null) {
-      newAd.textContent += `${ad.endElapsedTime}${ad.splitPart ? ` (Parte ${ad.splitPart}${ad.isFailure ? ', Falha' : ''})` : `${ad.isFailure ? ' (Falha)' : ''}`}`;
+      newAd.textContent = `${ad.customer} | ${ad.property} | ${ad.startTime} | ${ad.endElapsedTime}${ad.splitPart ? ` (Parte ${ad.splitPart}${ad.isFailure ? ', Falha' : ''})` : `${ad.isFailure ? ' (Falha)' : ''}`}`;
     } else {
+      newAd.textContent = `${ad.customer} | ${ad.property} | ${ad.startTime} | ${ad.isFailure ? ' (Falha)' : ''}`;
       const endAd = document.createElement('button');
       endAd.textContent = 'fim';
       endAd.addEventListener('click', () => handleEndAd(ad.id, event));
@@ -843,8 +830,7 @@ observer.observe(document.body, { childList: true, subtree: true });
     // Ignorar eventos se o foco está em campos de entrada
     if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
       return;
-    }
-    if (event.ctrlKey && !event.altKey && event.key === ' ') {
+    } else if (event.ctrlKey && !event.altKey && event.key === 'Enter') {
       event.preventDefault();
       if (playVideo) {
         handlePlay();
@@ -855,28 +841,26 @@ observer.observe(document.body, { childList: true, subtree: true });
       return;
     }
     // Ctrl + Alt
-    if (event.ctrlKey && event.altKey && event.key === 'ArrowLeft') {
+    else if (event.ctrlKey && event.altKey && event.key === 'ArrowLeft') {
       event.preventDefault();
       const time = document.getElementById('time-slow')?.value || 1;
       handleBack(time);
       return;
-    }
-    if (event.ctrlKey && event.altKey && event.key === 'ArrowRight') {
+    } else if (event.ctrlKey && event.altKey && event.key === 'ArrowRight') {
       event.preventDefault();
-      const time = document.getElementById('time-fast')?.value || 5;
+      const time = document.getElementById('time-fast').value || 5;
       handleFwd(time);
       return;
     }
     // Ctrl
-    if (event.ctrlKey && !event.altKey && event.key === 'ArrowLeft') {
+    else if (event.ctrlKey && !event.altKey && event.key === 'ArrowLeft') {
       event.preventDefault();
-      const time = document.getElementById('time-slow')?.value || 1;
+      const time = document.getElementById('time-slow').value || 1;
       handleBack(time);
       return;
-    }
-    if (event.ctrlKey && !event.altKey && event.key === 'ArrowRight') {
+    } else if (event.ctrlKey && !event.altKey && event.key === 'ArrowRight') {
       event.preventDefault();
-      const time = document.getElementById('time-slow')?.value || 1;
+      const time = document.getElementById('time-slow').value || 1;
       handleFwd(time);
       return;
     }
@@ -884,7 +868,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 })();
 
 // Listener para receber mensagens do background
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, event) => {
   const video = document.querySelector('video');
   if (message.action === 'getCurrentTime') {
     sendResponse({ currentTime: getCurrentTime(video) || '' });
